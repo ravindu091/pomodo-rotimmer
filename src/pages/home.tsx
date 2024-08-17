@@ -57,5 +57,3 @@ export default function Home() {
 
 
 
-git config --global user.name "ravindu091"
-git config --global user.email "diluparavindu091@gmil.com"
