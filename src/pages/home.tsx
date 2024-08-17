@@ -53,3 +53,9 @@ export default function Home() {
 
 //set HTTPS_PROXY=http://172.16.0.1:44355
 //set HTTP_PROXY=http://172.16.0.1:44355
+
+
+
+
+git config --global user.name "ravindu091"
+git config --global user.email "diluparavindu091@gmil.com"
