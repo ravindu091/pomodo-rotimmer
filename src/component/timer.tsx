@@ -1,73 +1,76 @@
 import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardFooter, CardHeader } from "./ui/card";
 import { cn } from "@/lib/utils";
-import { Timer as TimerIcon, Coffee, RefreshCcw, Square, SkipForward, Play,ClipboardList } from 'lucide-react';
+import { Timer as TimerIcon, Coffee, RefreshCcw, Square, SkipForward, Play, ClipboardList } from 'lucide-react';
 import { Button } from "./ui/button";
 
 interface TaskType {
     id: number;
     title: string;
     note: string;
-    completed:boolean;
-    category:string;
-    sessions:number;
-    state:string;
-    csessions:number;
-
+    completed: boolean;
+    category: string;
+    sessions: number;
+    state: string;
+    csessions: number;
 }
 
-export default function Timer({taskList}:{taskList:TaskType[]}) {
+export default function Timer({ taskList }: { taskList: TaskType[] }) {
     const [isOngoing, setIsOngoing] = useState<boolean>(false);
     const [isRunning, setIsRunning] = useState<boolean>(false);
     const [time, setTime] = useState<number>(1500);
+    const [currentTask, setCurrentTask] = useState<TaskType | null>(null);
+    const [currentSession, setCurrentSession] = useState<number>(0);
     const timerRef = useRef<NodeJS.Timeout | null>(null);
-     
-    const timePeriod =[
-        {name:'ongoing' , time:1500},
-        {name:'break' , time:300},
-        {name:'ongoing' , time:1500},
-        {name:'break' , time:300},
-        {name:'ongoing' , time:1500},
-        {name:'break' , time:300},
-        {name:'ongoing' , time:1500},
-        {name:'lbreak' , time:900},
-    ]
 
-    useEffect(()=>{
-        taskList.map(task=>console.log(task)
-        )
-        MasterControler()
-    },[taskList])
-    
-    const [task, setTask] = useState<TaskType>({id: 0,
-        title: 'string',
-        note: 'string',
-        completed:false,
-        category:'string',
-        sessions:0,
-        state:"string",
-        csessions:0})
-  
-     var intervelFn ;
-    
-    const MasterControler = ()=>{
-       while (true) {
-         timePeriod.map(time=>{
-            setTime(time.time)
-            taskList.filter(task=>task.csessions !== task.sessions && setTask(task))
-            intervelFn = setInterval(()=>{
-                console.log(10);
-                
-            },1000)
-         })
-       } 
-    }
+    const timePeriods = [
+        { name: 'ongoing', time: 1500 },
+        { name: 'break', time: 300 },
+        { name: 'ongoing', time: 1500 },
+        { name: 'break', time: 300 },
+        { name: 'ongoing', time: 1500 },
+        { name: 'break', time: 300 },
+        { name: 'ongoing', time: 1500 },
+        { name: 'lbreak', time: 900 },
+    ];
+
+    useEffect(() => {
+        const firstTask = taskList.find(task => task.csessions < task.sessions);
+        if (firstTask) {
+            setCurrentTask(firstTask);
+            setTime(timePeriods[0].time); // Set initial time to the first 'ongoing' period
+        }
+    }, [taskList]);
+
+    const handleTimerComplete = () => {
+        if (currentTask) {
+            const updatedCsessions = currentTask.csessions + 1;
+            if (updatedCsessions < currentTask.sessions) {
+                setCurrentTask({ ...currentTask, csessions: updatedCsessions });
+                setCurrentSession((prevSession) => (prevSession + 1) % timePeriods.length);
+                setTime(timePeriods[(currentSession + 1) % timePeriods.length].time);
+            } else {
+                const nextTask = taskList.find(task => task.csessions < task.sessions);
+                if (nextTask) {
+                    setCurrentTask(nextTask);
+                    setCurrentSession(0);
+                    setTime(timePeriods[0].time);
+                }
+            }
+        }
+    };
+
+    const skipSession = () => {
+        if (timerRef.current) {
+            clearInterval(timerRef.current);
+            setIsRunning(false);
+        }
+        handleTimerComplete();
+    };
 
     const TimerFun = (command: string) => {
-        
 
         const startTimer = () => {
-            
             if (!isRunning) {
                 setIsOngoing(true);
                 setIsRunning(true);
@@ -76,6 +79,7 @@ export default function Timer({taskList}:{taskList:TaskType[]}) {
                         if (time <= 1) {
                             clearInterval(timerRef.current!);
                             setIsRunning(false);
+                            handleTimerComplete();
                             return 0;
                         }
                         return time - 1;
@@ -83,7 +87,7 @@ export default function Timer({taskList}:{taskList:TaskType[]}) {
                 }, 1000);
             }
         };
-        
+
         const pauseTimer = () => {
             if (isRunning && timerRef.current) {
                 clearInterval(timerRef.current);
@@ -106,6 +110,8 @@ export default function Timer({taskList}:{taskList:TaskType[]}) {
             pauseTimer();
         } else if (command === "reset") {
             resetTimer();
+        } else if (command === "skip") {
+            skipSession();
         }
     };
 
@@ -139,7 +145,7 @@ export default function Timer({taskList}:{taskList:TaskType[]}) {
                         {`${Math.floor(time / 60).toString().padStart(2, '0')}:${(time % 60).toString().padStart(2, '0')}`}
                     </h1>
                     <div className="w-full py-1 mt-3 bg-slate-50 bg-opacity-50 rounded-lg px-3">
-                        <h1 className="flex flex-row font-semibold"><ClipboardList/>{task.title}</h1>
+                        <h1 className="flex flex-row font-semibold"><ClipboardList />{currentTask?.title}</h1>
                     </div>
                 </CardContent>
                 <CardFooter>
@@ -162,7 +168,7 @@ export default function Timer({taskList}:{taskList:TaskType[]}) {
                                 </>
                             )}
                         </Button>
-                        <Button variant="white" size="icon" className="rounded-3xl">
+                        <Button variant="white" size="icon" className="rounded-3xl" onClick={() => TimerFun('skip')}>
                             <SkipForward />
                         </Button>
                     </div>
